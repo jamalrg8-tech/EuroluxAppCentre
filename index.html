@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EuroluxApp Control Center</title>
+<meta name="theme-color" content="#0f1b2d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0f1b2d; --panel:#16263d; --panel-hi:#1d3150; --text:#eef3fa; --muted:#93a4bd;
+    --accent:#f2a33a; --line:rgba(255,255,255,.08); --bar-h:52px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+
+  /* ---------- Dashboard ---------- */
+  #home{height:100%;overflow-y:auto;padding:calc(env(safe-area-inset-top) + 28px) 20px 0;display:flex;flex-direction:column}
+  #home .grid,#home header{width:100%}
+  footer{margin-top:auto;padding:36px 0 calc(env(safe-area-inset-bottom) + 20px);text-align:center;font-size:12px;color:var(--muted);line-height:1.6}
+  header{max-width:980px;margin:0 auto 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  header h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  header h1 span{color:var(--accent)}
+  header p{color:var(--muted);font-size:14px;margin-top:4px}
+  #clock{color:var(--muted);font-size:13px;text-align:right}
+  .grid{max-width:980px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  .tile{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 18px 18px;
+        cursor:pointer;text-align:left;color:inherit;font:inherit;transition:transform .15s,background .15s,border-color .15s}
+  .tile:hover{background:var(--panel-hi);border-color:rgba(242,163,58,.4);transform:translateY(-2px)}
+  .tile:active{transform:scale(.98)}
+  .tile .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:14px;background:var(--c)}
+  .tile .ico svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .tile h2{font-size:16px;font-weight:650}
+  .tile p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .tile .live{position:absolute;top:14px;right:14px;font-size:11px;color:var(--accent);display:none}
+  .tile.open .live{display:block}
+
+  /* ---------- App viewer ---------- */
+  #viewer{position:fixed;inset:0;display:none;flex-direction:column;background:#fff}
+  #viewer.show{display:flex}
+  .bar{height:calc(var(--bar-h) + env(safe-area-inset-top));padding:env(safe-area-inset-top) 8px 0;background:var(--bg);
+       display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line);flex-shrink:0}
+  .bar button{background:transparent;border:0;color:var(--text);height:38px;min-width:38px;padding:0 10px;border-radius:10px;
+              display:flex;align-items:center;gap:6px;font:inherit;font-size:14px;cursor:pointer}
+  .bar button:hover{background:var(--panel-hi)}
+  .bar svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  #home-btn{background:var(--accent);color:#1a1a1a;font-weight:600}
+  #home-btn:hover{background:#f5b45c}
+  #app-title{flex:1;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:6px}
+  #frames{flex:1;position:relative}
+  #frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#fff}
+  #frames iframe.active{display:block}
+  #loading{position:absolute;inset:0;display:none;place-items:center;background:#f4f6f9;color:#556;font-size:14px}
+  #loading.show{display:grid}
+  .spin{width:28px;height:28px;border:3px solid #d5dbe4;border-top-color:var(--accent);border-radius:50%;animation:s .8s linear infinite;margin:0 auto 10px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  @media (max-width:520px){ .bar .lbl{display:none} .grid{grid-template-columns:1fr 1fr} .tile p{display:none} }
+</style>
+</head>
+<body>
+
+<section id="home">
+  <header>
+    <div>
+      <h1>EuroluxApp <span>Control Center</span></h1>
+      <p>Tap an app to open it. Use <b>Home</b> to come back.</p>
+    </div>
+    <div id="clock"></div>
+  </header>
+  <div class="grid" id="grid"></div>
+  <footer>Eurolux App Control Center, Created with Love By Uncle Ed, Version 4.20, 2026年9月 - タイガ🤌🏽</footer>
+</section>
+
+<section id="viewer" aria-live="polite">
+  <div class="bar">
+    <button id="home-btn" title="Back to Control Center">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span>
+    </button>
+    <div id="app-title"></div>
+    <button id="reload-btn" title="Reload app"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>
+    <button id="newtab-btn" title="Open in its own window"><svg viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v6H4V5h6"/></svg></button>
+  </div>
+  <div id="frames">
+    <div id="loading"><div><div class="spin"></div>Loading…</div></div>
+  </div>
+</section>
+
+<script>
+/* ===== Edit your apps here ===== */
+const APPS = [
+  { id:'planner',    name:'Install Planner',   desc:'Plan and schedule installations', url:'https://install-planner.vercel.app/InstallPlanner.html', color:'#3b82f6',
+    icon:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>' },
+  { id:'projects',   name:'Eurolux Projects',  desc:'Project overview and tracking',   url:'https://euroluxprojects.vercel.app/', color:'#8b5cf6',
+    icon:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' },
+  { id:'cut',        name:'Cut Optimisation',  desc:'Optimise cutting lists',          url:'https://cut-optimisation.vercel.app/', color:'#ef4444',
+    icon:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/>' },
+  { id:'inventory',  name:'Eurolux Inventory', desc:'Stock and materials',             url:'https://euroluxinventory-vert.vercel.app/Euroluxinventory.html#dashboard', color:'#10b981',
+    icon:'<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>' },
+  { id:'survey',     name:'EuroSurvey',        desc:'Site surveys',                    url:'https://eurosurvey.vercel.app/', color:'#f59e0b',
+    icon:'<path d="M9 3h6v3H9z"/><path d="M8 5H5v16h14V5h-3"/><path d="M9 12l2 2 4-4"/>' },
+  { id:'attendance', name:'Site Attendance',   desc:'Clock-in and site register',      url:'https://site-attendance-kappa.vercel.app/', color:'#06b6d4',
+    icon:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M17 11l2 2 4-4"/>' },
+];
+/* =============================== */
+
+const grid = document.getElementById('grid');
+const viewer = document.getElementById('viewer');
+const frames = document.getElementById('frames');
+const loading = document.getElementById('loading');
+const titleEl = document.getElementById('app-title');
+const opened = {};   // id -> iframe (kept alive so apps keep their state)
+let current = null;
+
+APPS.forEach(a => {
+  const b = document.createElement('button');
+  b.className = 'tile'; b.id = 'tile-' + a.id;
+  b.innerHTML = `<span class="live">● open</span>
+    <div class="ico" style="--c:${a.color}"><svg viewBox="0 0 24 24">${a.icon}</svg></div>
+    <h2>${a.name}</h2><p>${a.desc}</p>`;
+  b.onclick = () => openApp(a.id, true);
+  grid.appendChild(b);
+});
+
+function openApp(id, push){
+  const a = APPS.find(x => x.id === id); if(!a) return;
+  current = a;
+  titleEl.textContent = a.name;
+  document.title = a.name + ' · Eurolux';
+  Object.values(opened).forEach(f => f.classList.remove('active'));
+  let f = opened[id];
+  if(!f){
+    f = document.createElement('iframe');
+    f.src = a.url;
+    f.title = a.name;
+    f.allow = 'camera; microphone; geolocation; clipboard-read; clipboard-write; fullscreen; web-share';
+    loading.classList.add('show');
+    f.onload = () => loading.classList.remove('show');
+    frames.appendChild(f);
+    opened[id] = f;
+    document.getElementById('tile-' + id).classList.add('open');
+  }
+  f.classList.add('active');
+  viewer.classList.add('show');
+  if(push) history.pushState({app:id}, '', '#' + id);
+}
+
+function goHome(push){
+  viewer.classList.remove('show');
+  loading.classList.remove('show');
+  current = null;
+  document.title = 'EuroluxApp Control Center';
+  if(push) history.pushState({}, '', location.pathname);
+}
+
+document.getElementById('home-btn').onclick = () => {
+  if(history.state && history.state.app) history.back(); else goHome(true);
+};
+document.getElementById('reload-btn').onclick = () => {
+  if(!current) return; const f = opened[current.id];
+  loading.classList.add('show'); f.src = current.url;
+};
+document.getElementById('newtab-btn').onclick = () => { if(current) window.open(current.url, '_blank', 'noopener'); };
+
+// Phone back button / swipe-back returns to the dashboard
+window.addEventListener('popstate', e => {
+  if(e.state && e.state.app) openApp(e.state.app, false); else goHome(false);
+});
+
+// Deep link: dashboard.../#inventory opens that app directly
+const start = location.hash.slice(1);
+if(APPS.some(a => a.id === start)){ history.replaceState({}, '', location.pathname); openApp(start, true); }
+
+// Clock
+const clock = document.getElementById('clock');
+const tick = () => clock.textContent = new Date().toLocaleString([], {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
+tick(); setInterval(tick, 30000);
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
