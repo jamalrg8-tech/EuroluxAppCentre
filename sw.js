@@ -1,5 +1,5 @@
 // Caches only the dashboard shell. Each app keeps its own service worker.
-const CACHE = 'eurolux-dash-v4';
+const CACHE = 'eurolux-dash-v5';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
